@@ -1,47 +1,45 @@
-name: Package and Upload Game Installers
-on:
-  push:
-    branches:
-      - master
-    paths:
-      - 'build.gradle'
-      - 'game-app/**'
-      - 'http-clients/**'
-      - 'lib/**'
-      - 'servers/*/client/**'
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 jobs:
   build:
-    runs-on: Ubuntu-20.04
+    runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          # Fetch depth of 0 is needed so we checkout the full revision history
-          # The current revision count will be used as our build-number
-          fetch-depth: '0'
-      - name: Set up JDK 11
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 11
-      - name: Build Installers
-        run: ./game-app/run/package
-        env:
-          INSTALL4J_LICENSE: ${{ secrets.INSTALL4J_LICENSE }}
-      - name: set build version variables
-        run: |
-          BUILD_VERSION=$(game-app/run/.build/get-build-version)
-          echo "build_version=$BUILD_VERSION" | tee -a $GITHUB_ENV
-          echo "release_name=$(date +%Y-%B-%d) - $BUILD_VERSION" | tee -a $GITHUB_ENV
-      - name: Create Github Release
-        uses: ncipollo/release-action@v1
-        with:        
-          artifacts: build/artifacts/*
-          tag: ${{ env.build_version }}
-          name: ${{ env.release_name }}
-          prerelease: true
-          commit: ${{ github.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}
+    - continue-on-error: true
+      name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: '0'
+    - continue-on-error: true
+      name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: 11
+    - continue-on-error: true
+      env:
+        INSTALL4J_LICENSE: ${{ secrets.INSTALL4J_LICENSE }}
+      name: Build Installers
+      run: ./game-app/run/package
+    - continue-on-error: true
+      name: set build version variables
+      run: 'BUILD_VERSION=$(game-app/run/.build/get-build-version)
 
+        echo "build_version=$BUILD_VERSION" | tee -a $GITHUB_ENV
+
+        echo "release_name=$(date +%Y-%B-%d) - $BUILD_VERSION" | tee -a $GITHUB_ENV
+
+        '
+    - continue-on-error: true
+      name: Create Github Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: build/artifacts/*
+        commit: ${{ github.sha }}
+        name: ${{ env.release_name }}
+        prerelease: true
+        tag: ${{ env.build_version }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+name: Package and Upload Game Installers
+on:
+  repository_dispatch:
+    types: trigger-ga___upload-game-installers.yml
